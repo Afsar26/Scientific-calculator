@@ -3,335 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scientific Calculator</title>
-  <style>
-    :root {
-      --bg: #0b1020;
-      --panel: rgba(14, 20, 39, 0.86);
-      --panel-strong: rgba(18, 26, 49, 0.96);
-      --text: #f8fafc;
-      --muted: #aab4c5;
-      --line: rgba(255, 255, 255, 0.09);
-      --accent: #60a5fa;
-      --accent-2: #a78bfa;
-      --shadow: 0 28px 70px rgba(0, 0, 0, 0.38);
-    }
-
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Segoe UI", Arial, sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), transparent 24%),
-        radial-gradient(circle at 80% 20%, rgba(167, 139, 250, 0.18), transparent 20%),
-        linear-gradient(180deg, #080b16 0%, #0e1426 100%);
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background:
-        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(255,255,255,.025) 1px, transparent 1px);
-      background-size: 84px 84px;
-      pointer-events: none;
-      mask-image: linear-gradient(180deg, rgba(0,0,0,.38), transparent 92%);
-    }
-    button { font: inherit; border: none; cursor: pointer; }
-    .calculator-shell { width: min(980px, calc(100% - 24px)); margin: 0 auto; padding: 24px 0; }
-    .calculator-card {
-      position: relative; overflow: hidden; border: 1px solid var(--line);
-      border-radius: 36px; padding: 26px;
-      background: linear-gradient(180deg, var(--panel), var(--panel-strong));
-      box-shadow: var(--shadow); backdrop-filter: blur(12px);
-    }
-    .calculator-card::before,
-    .calculator-card::after {
-      content: ""; position: absolute; border-radius: 50%; pointer-events: none; filter: blur(10px);
-    }
-    .calculator-card::before { inset: -20% auto auto -10%; width: 320px; height: 320px; background: radial-gradient(circle, rgba(96,165,250,.26), transparent 70%); }
-    .calculator-card::after { inset: auto -10% -20% auto; width: 280px; height: 280px; background: radial-gradient(circle, rgba(167,139,250,.2), transparent 68%); }
-    .calculator-header, .memory-row, .footer-note { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .calculator-header { position: relative; z-index: 1; margin-bottom: 20px; }
-    .eyebrow { margin: 0 0 8px; text-transform: uppercase; letter-spacing: .18em; color: var(--accent); font-size: .76rem; font-weight: 700; }
-    h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1; }
-    .mode-toggle { min-width: 74px; padding: 12px 16px; border-radius: 999px; color: white; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 10px 26px rgba(96,165,250,.28); }
-    .display-panel { position: relative; z-index: 1; padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 24px; background: rgba(0,0,0,.2); }
-    .memory-row { margin-bottom: 14px; color: var(--muted); font-size: .92rem; }
-    .hint { text-align: right; }
-    .expression, .result { display: block; width: 100%; text-align: right; word-break: break-all; }
-    .expression { min-height: 2.2rem; color: var(--muted); font-size: clamp(1.1rem, 2vw, 1.5rem); }
-    .result { min-height: 3.5rem; font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -.04em; }
-    .button-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
-    .key { min-height: 56px; border-radius: 18px; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); transition: transform 150ms ease, background 150ms ease, border-color 150ms ease; }
-    .key:hover, .key:focus-visible, .mode-toggle:hover, .mode-toggle:focus-visible { transform: translateY(-2px); }
-    .key:hover, .key:focus-visible { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.16); }
-    .key-muted { color: #dbeafe; }
-    .key-warning { color: #1f2937; background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-    .key-operator { background: linear-gradient(135deg, rgba(96,165,250,.24), rgba(167,139,250,.24)); color: #eff6ff; font-size: 1.25rem; font-weight: 700; }
-    .key-scientific { color: #dbeafe; background: rgba(96,165,250,.08); }
-    .key-equals { grid-column: span 2; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; font-size: 1.4rem; font-weight: 800; }
-    .key-wide { grid-column: span 2; }
-    .footer-note { position: relative; z-index: 1; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .94rem; }
-    @media (max-width: 760px) { .calculator-card { padding: 18px; border-radius: 28px; } .button-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .key-equals, .key-wide { grid-column: span 2; } .memory-row, .footer-note { flex-direction: column; align-items: flex-start; } .hint { text-align: left; } }
-    @media (max-width: 480px) { .calculator-shell { width: min(100% - 12px, 980px); padding: 12px 0; } .button-grid { gap: 10px; } .key { min-height: 50px; border-radius: 16px; padding: 10px 8px; } .result { min-height: 3rem; } }
-  </style>
+  <title>Netflix Clone</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="calculator-shell">
-    <section class="calculator-card" aria-label="Scientific calculator">
-      <header class="calculator-header">
-        <div>
-          <p class="eyebrow">Web Calculator</p>
-          <h1>Scientific Calculator</h1>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <a class="brand" href="#" aria-label="Netflix Clone home">NETFLIX</a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="#">Home</a>
+          <a href="#">Series</a>
+          <a href="#">Films</a>
+          <a href="#">New &amp; Popular</a>
+          <a href="#">My List</a>
+        </nav>
+      </div>
+      <div class="toolbar">
+        <label class="search-shell" for="searchInput">
+          <span>Search</span>
+          <input id="searchInput" type="search" placeholder="Titles, genres, moods">
+        </label>
+        <button class="profile-button" type="button" aria-label="Profile">A</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero-layout">
+        <article class="hero-stage" id="heroStage">
+          <div class="hero-backdrop" id="heroBackdrop" aria-hidden="true"></div>
+          <div class="hero-sheen" aria-hidden="true"></div>
+          <div class="hero-copy">
+            <p class="hero-label" id="heroBadge"></p>
+            <h1 id="heroTitle"></h1>
+            <div class="hero-meta">
+              <span class="match" id="heroMatch"></span>
+              <span id="heroYear"></span>
+              <span class="meta-pill" id="heroMaturity"></span>
+              <span id="heroDuration"></span>
+            </div>
+            <p class="hero-description" id="heroDescription"></p>
+            <div class="tag-list" id="heroTags"></div>
+            <div class="hero-actions">
+              <button class="button button-primary" id="playButton" type="button">Play</button>
+              <button class="button button-secondary" id="listButton" type="button">+ My List</button>
+            </div>
+            <p class="hero-note" id="heroNote">Select a title to update the feature banner.</p>
+          </div>
+        </article>
+
+        <aside class="sidebar-card">
+          <div class="sidebar-block">
+            <p class="section-kicker">Tonight's Pick</p>
+            <h2 id="spotlightTitle"></h2>
+            <p class="sidebar-text" id="spotlightBlurb"></p>
+          </div>
+
+          <div class="sidebar-block">
+            <div class="sidebar-heading">
+              <p class="section-kicker">Continue Watching</p>
+              <span class="sidebar-small" id="continueCount"></span>
+            </div>
+            <div class="continue-list" id="continueList"></div>
+          </div>
+
+          <div class="sidebar-block">
+            <div class="sidebar-heading">
+              <p class="section-kicker">Queue</p>
+              <span class="sidebar-small">Curated for you</span>
+            </div>
+            <div class="queue-list" id="queueList"></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="controls-panel">
+        <div class="controls-top">
+          <div>
+            <p class="section-kicker">Browse</p>
+            <h2>Find your next binge</h2>
+          </div>
+          <p class="results-copy" id="resultsCopy"></p>
         </div>
-        <button class="mode-toggle" id="angleModeButton" type="button" aria-label="Toggle angle mode">DEG</button>
-      </header>
-
-      <section class="display-panel" aria-live="polite">
-        <div class="memory-row">
-          <span>Memory: <strong id="memoryValue">0</strong></span>
-          <span class="hint">Use the keys or your keyboard</span>
-        </div>
-        <output class="expression" id="expressionDisplay">0</output>
-        <output class="result" id="resultDisplay">0</output>
+        <div class="chip-row" id="filterChips" aria-label="Genre filters"></div>
       </section>
 
-      <section class="button-grid" aria-label="Calculator buttons">
-        <button type="button" class="key key-muted" data-action="memory-clear">MC</button>
-        <button type="button" class="key key-muted" data-action="memory-recall">MR</button>
-        <button type="button" class="key key-muted" data-action="memory-add">M+</button>
-        <button type="button" class="key key-muted" data-action="memory-subtract">M-</button>
-        <button type="button" class="key key-warning" data-action="clear">AC</button>
-        <button type="button" class="key key-warning" data-action="delete">DEL</button>
+      <section class="rows-shell" id="rowsShell" aria-live="polite"></section>
+    </main>
+  </div>
 
-        <button type="button" class="key key-scientific" data-insert="sin(">sin</button>
-        <button type="button" class="key key-scientific" data-insert="cos(">cos</button>
-        <button type="button" class="key key-scientific" data-insert="tan(">tan</button>
-        <button type="button" class="key key-scientific" data-insert="sqrt(">√</button>
-        <button type="button" class="key key-scientific" data-insert="log(">log</button>
-        <button type="button" class="key key-scientific" data-insert="ln(">ln</button>
-
-        <button type="button" class="key" data-insert="(">(</button>
-        <button type="button" class="key" data-insert=")">)</button>
-        <button type="button" class="key" data-insert="^">xʸ</button>
-        <button type="button" class="key" data-insert="!">n!</button>
-        <button type="button" class="key" data-insert="pi">π</button>
-        <button type="button" class="key" data-insert="e">e</button>
-
-        <button type="button" class="key" data-insert="7">7</button>
-        <button type="button" class="key" data-insert="8">8</button>
-        <button type="button" class="key" data-insert="9">9</button>
-        <button type="button" class="key key-operator" data-insert="/">÷</button>
-        <button type="button" class="key key-scientific" data-insert="abs(">abs</button>
-        <button type="button" class="key key-scientific" data-insert="ans">Ans</button>
-
-        <button type="button" class="key" data-insert="4">4</button>
-        <button type="button" class="key" data-insert="5">5</button>
-        <button type="button" class="key" data-insert="6">6</button>
-        <button type="button" class="key key-operator" data-insert="*">×</button>
-        <button type="button" class="key key-scientific" data-insert="asin(">asin</button>
-        <button type="button" class="key key-scientific" data-insert="acos(">acos</button>
-
-        <button type="button" class="key" data-insert="1">1</button>
-        <button type="button" class="key" data-insert="2">2</button>
-        <button type="button" class="key" data-insert="3">3</button>
-        <button type="button" class="key key-operator" data-insert="-">−</button>
-        <button type="button" class="key key-scientific" data-insert="atan(">atan</button>
-        <button type="button" class="key key-scientific" data-insert="fact(">fact</button>
-
-        <button type="button" class="key key-wide" data-insert="0">0</button>
-        <button type="button" class="key" data-insert=".">.</button>
-        <button type="button" class="key key-operator" data-insert="+">+</button>
-        <button type="button" class="key key-equals" data-action="equals">=</button>
-      </section>
-
-      <section class="footer-note">
-        <p>Supports keyboard input, trig functions, roots, logs, powers, and memory.</p>
-      </section>
-    </section>
-  </main>
-
-  <script>
-    const state = {
-      expression: "",
-      result: "0",
-      memory: 0,
-      angleMode: "DEG",
-      lastAnswer: 0
-    };
-
-    const expressionDisplay = document.getElementById("expressionDisplay");
-    const resultDisplay = document.getElementById("resultDisplay");
-    const memoryValue = document.getElementById("memoryValue");
-    const angleModeButton = document.getElementById("angleModeButton");
-
-    function formatNumber(value) {
-      if (!Number.isFinite(value)) return "Error";
-      const rounded = Number.parseFloat(value.toPrecision(12));
-      return Number.isInteger(rounded) ? String(rounded) : String(rounded);
-    }
-
-    function factorial(n) {
-      if (!Number.isInteger(n) || n < 0) {
-        throw new Error("Factorial is only defined for non-negative integers.");
-      }
-      let total = 1;
-      for (let i = 2; i <= n; i += 1) total *= i;
-      return total;
-    }
-
-    function toRadians(value) { return (value * Math.PI) / 180; }
-    function toDegrees(value) { return (value * 180) / Math.PI; }
-
-    function applyFactorials(expression) {
-      let current = expression;
-      const pattern = /(\b(?:pi|e|ans)\b|\d+(?:\.\d+)?|\([^()]+\))!/g;
-      while (pattern.test(current)) {
-        pattern.lastIndex = 0;
-        current = current.replace(pattern, "factorial($1)");
-      }
-      return current;
-    }
-
-    function normalizeExpression(expression) {
-      return applyFactorials(
-        expression
-          .replace(/×/g, "*")
-          .replace(/÷/g, "/")
-          .replace(/−/g, "-")
-          .replace(/\^/g, "**")
-          .replace(/π/g, "pi")
-      );
-    }
-
-    function evaluateExpression(expression) {
-      const cleaned = normalizeExpression(expression.replace(/\s+/g, ""));
-      if (!cleaned) return 0;
-      if (!/^[0-9+\-*/().,!*_a-zA-Z]*$/.test(cleaned)) {
-        throw new Error("Invalid characters in expression.");
-      }
-
-      const scope = {
-        pi: Math.PI,
-        e: Math.E,
-        ans: state.lastAnswer,
-        factorial,
-        sqrt: Math.sqrt,
-        abs: Math.abs,
-        ln: Math.log,
-        log: Math.log10,
-        sin: (value) => Math.sin(state.angleMode === "DEG" ? toRadians(value) : value),
-        cos: (value) => Math.cos(state.angleMode === "DEG" ? toRadians(value) : value),
-        tan: (value) => Math.tan(state.angleMode === "DEG" ? toRadians(value) : value),
-        asin: (value) => {
-          const result = Math.asin(value);
-          return state.angleMode === "DEG" ? toDegrees(result) : result;
-        },
-        acos: (value) => {
-          const result = Math.acos(value);
-          return state.angleMode === "DEG" ? toDegrees(result) : result;
-        },
-        atan: (value) => {
-          const result = Math.atan(value);
-          return state.angleMode === "DEG" ? toDegrees(result) : result;
-        }
-      };
-
-      const names = Object.keys(scope);
-      const values = Object.values(scope);
-      const calculator = new Function(...names, `"use strict"; return (${cleaned});`);
-      return calculator(...values);
-    }
-
-    function updateDisplay() {
-      expressionDisplay.textContent = state.expression || "0";
-      resultDisplay.textContent = state.result;
-      memoryValue.textContent = formatNumber(state.memory);
-      angleModeButton.textContent = state.angleMode;
-      angleModeButton.setAttribute("aria-label", `Angle mode is ${state.angleMode}. Toggle angle mode.`);
-    }
-
-    function insertText(text) {
-      if (!state.expression || state.expression === "0") state.expression = text;
-      else state.expression += text;
-      updateDisplay();
-    }
-
-    function clearAll() {
-      state.expression = "";
-      state.result = "0";
-      updateDisplay();
-    }
-
-    function deleteLast() {
-      state.expression = state.expression.slice(0, -1);
-      updateDisplay();
-    }
-
-    function calculate() {
-      try {
-        const value = evaluateExpression(state.expression);
-        state.lastAnswer = value;
-        state.result = formatNumber(value);
-      } catch (error) {
-        state.result = `Error: ${error.message}`;
-      }
-      updateDisplay();
-    }
-
-    function updateMemory(operation) {
-      const current = Number.parseFloat(state.result);
-      if (!Number.isFinite(current)) return;
-      if (operation === "add") state.memory += current;
-      else if (operation === "subtract") state.memory -= current;
-      else if (operation === "recall") {
-        insertText(formatNumber(state.memory));
-        return;
-      } else if (operation === "clear") {
-        state.memory = 0;
-      }
-      updateDisplay();
-    }
-
-    document.querySelectorAll("[data-insert]").forEach((button) => {
-      button.addEventListener("click", () => insertText(button.dataset.insert));
-    });
-
-    document.querySelectorAll("[data-action]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const action = button.dataset.action;
-        if (action === "clear") clearAll();
-        else if (action === "delete") deleteLast();
-        else if (action === "equals") calculate();
-        else if (action === "memory-clear") updateMemory("clear");
-        else if (action === "memory-recall") updateMemory("recall");
-        else if (action === "memory-add") updateMemory("add");
-        else if (action === "memory-subtract") updateMemory("subtract");
-      });
-    });
-
-    angleModeButton.addEventListener("click", () => {
-      state.angleMode = state.angleMode === "DEG" ? "RAD" : "DEG";
-      updateDisplay();
-    });
-
-    document.addEventListener("keydown", (event) => {
-      const { key } = event;
-      if (/^[0-9]$/.test(key) || [".", "+", "-", "*", "/", "(", ")", "^", "!", ","].includes(key)) {
-        event.preventDefault();
-        insertText(key === "," ? "." : key);
-        return;
-      }
-      if (key === "Enter") { event.preventDefault(); calculate(); return; }
-      if (key === "Backspace") { event.preventDefault(); deleteLast(); return; }
-      if (key === "Escape") { event.preventDefault(); clearAll(); }
-    });
-
-    updateDisplay();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
